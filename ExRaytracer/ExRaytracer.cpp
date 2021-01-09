@@ -20,7 +20,9 @@ void Reshape(int w, int h);
 void Img();
 float Vec3Dot(GVec3 a, GVec3 b);
 GVec3 RayTrace(GLine v, int depth);
-std::tuple<std::shared_ptr<GSphere>, float> nearest_intersected_surface(GLine ray);
+typedef std::tuple<std::shared_ptr<GSphere>, float> findSphere;
+findSphere nearest_intersected_surface(GLine ray);
+GPos3 point_of_intersection(GLine ray, float t);
 
 int main(int argc, char **argv)
 {
@@ -153,14 +155,17 @@ GVec3 RayTrace(GLine v, int depth)
 	// 1. 교차하는 가장 가까운 구 찾기
 	auto S = nearest_intersected_surface(v);
 
-	if (std::get<0>(S) == nullptr || depth == MAX_DEPTH)
+	auto &sphere = std::get<0>(S);
+	auto &time = std::get<1>(S);
+
+	if (sphere == nullptr || depth == MAX_DEPTH)
 	{
 		std::cout << "No" << std::endl;
 		return C; // default color
 	}
 
-	//// 2. 교차점 찾기
-	//p = point_of_intersection(v, S);
+	// 2. 교차점 찾기
+	auto p = point_of_intersection(v, time);
 
 	//// 3. 반사
 	//R = reflection(v, S, p);
@@ -172,7 +177,8 @@ GVec3 RayTrace(GLine v, int depth)
 	//C = phong(p, S, v) + kreflect * ray_trace(R, d) + krefract * ray_trace(T, d);
 
 	std::cout << "Yes" << std::endl;
-	std::cout << std::get<0>(S)->Pos << std::endl;
+	std::cout << sphere->Pos << std::endl;
+	std::cout << time << std::endl;
 
 	return C;
 }
@@ -182,14 +188,12 @@ float Vec3Dot(GVec3 a, GVec3 b)
 {
 	return a.V[0] * b.V[0] + a.V[1] * b.V[1] + a.V[2] * b.V[2];
 }
-
 // 1. 교차하는 가장 가까운 구 찾기
-std::tuple<std::shared_ptr<GSphere>, float> nearest_intersected_surface(GLine ray)
+findSphere nearest_intersected_surface(GLine ray)
 {
-	std::tuple <std::shared_ptr<GSphere>, float> res
-		= std::make_tuple(nullptr, std::numeric_limits<float>::max());
+	findSphere res = std::make_tuple(nullptr, std::numeric_limits<float>::max());
 
-	for (auto &sphere : SphereList)
+	for (auto const &sphere : SphereList)
 	{
 		// u : p0 - q(구 중심)
 		GVec3 v = ray.GetDir(), u = ray.GetPt() - sphere.Pos;
@@ -197,7 +201,8 @@ std::tuple<std::shared_ptr<GSphere>, float> nearest_intersected_surface(GLine ra
 
 		if (uvDot * uvDot - (uDist * uDist - r * r) < 0) continue;
 
-		float t = (-1) * uvDot + SQRT(uvDot * uvDot - (uDist * uDist - r * r));
+		float t = (-1) * uvDot - SQRT(uvDot * uvDot - (uDist * uDist - r * r));
+		if(t < 0) t = (-1) * uvDot + SQRT(uvDot * uvDot - (uDist * uDist - r * r));
 
 		if (t < 0) continue;
 
@@ -209,6 +214,12 @@ std::tuple<std::shared_ptr<GSphere>, float> nearest_intersected_surface(GLine ra
 	}
 
 	return res;
+}
+
+// 2. 교차점 찾기
+GPos3 point_of_intersection(GLine ray, float t)
+{
+	return ray.GetPt() + ray.GetDir() * t;
 }
 
 
