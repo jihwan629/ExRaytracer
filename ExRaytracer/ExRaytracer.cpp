@@ -23,6 +23,8 @@ GVec3 RayTrace(GLine v, int depth);
 typedef std::tuple<std::shared_ptr<GSphere>, float> findSphere;
 findSphere nearest_intersected_surface(GLine ray);
 GPos3 point_of_intersection(GLine ray, float t);
+// 3. 반사
+GVec3 reflection(GLine ray, GSphere S, GPos3 p);
 
 int main(int argc, char **argv)
 {
@@ -124,6 +126,9 @@ void Img()
 
 		Color = RayTrace(GLine(GPos3(0.0, 0.0, 0.0), w0), 0); // NO
 		Color = RayTrace(GLine(GPos3(0.0, 0.0, 0.0), w1), 0); // NO
+
+		s0.V[1] += 10.0f;
+		Color = RayTrace(GLine(GPos3(0.0, 0.0, 0.0), s0), 0); // YES
 	}
 	
 
@@ -167,8 +172,8 @@ GVec3 RayTrace(GLine v, int depth)
 	// 2. 교차점 찾기
 	auto p = point_of_intersection(v, time);
 
-	//// 3. 반사
-	//R = reflection(v, S, p);
+	// 3. 반사
+	auto R = reflection(v, *sphere, p);
 
 	//// 4. 굴절
 	//T = refraction(v, S, p);
@@ -220,6 +225,15 @@ findSphere nearest_intersected_surface(GLine ray)
 GPos3 point_of_intersection(GLine ray, float t)
 {
 	return ray.GetPt() + ray.GetDir() * t;
+}
+
+// 3. 반사
+GVec3 reflection(GLine ray, GSphere S, GPos3 p)
+{
+	auto v = ray.GetDir();
+	auto N = (S.Pos - p).Normalize();
+
+	return v - 2 * Vec3Dot(N, v) * N;
 }
 
 
