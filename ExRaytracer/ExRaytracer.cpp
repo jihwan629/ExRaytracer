@@ -17,6 +17,8 @@
 #define kreflect 0.3
 #define krefract 0.3
 
+#define PI 3.141592
+
 unsigned char Image[H * W * 3];
 std::vector<GSphere> SphereList;
 std::vector<GLight> LightList;
@@ -40,6 +42,8 @@ GLine reflection(GVec3 v, GSphere S, GPos3 p);
 GLine refraction(GVec3 v, GSphere S, GPos3 p);
 // 5. 퐁 쉐이딩
 GVec3 phong(GPos3 p, GSphere S, GLine ray);
+// 6. 회전 애니메이션
+void Anim(int i);
 
 int main(int argc, char **argv)
 {
@@ -62,7 +66,7 @@ int main(int argc, char **argv)
 	));
 
 	LightList.push_back(GLight(
-		GPos3(200.0, -300.0, -580.0),
+		GPos3(200.0, -300.0, -400.0),
 		GVec3(0.2, 0.2, 0.2),
 		GVec3(0.7, 0.7, 0.7),
 		GVec3(0.8, 0.8, 0.8)
@@ -71,15 +75,15 @@ int main(int argc, char **argv)
 	// 구 배치
 
 	// 파란색 구
-	GSphere Sphere0 (GPos3(-50, -20, -350.0), 35.0f); 
+	GSphere Sphere0 (GPos3(0, 0, -350.0), 30.0f); 
 	Sphere0.Ka.Set(0.2, 0.2, 0.8);
 	Sphere0.Kd.Set(0.0, 0.0, 0.7);
 	Sphere0.Ks.Set(0.9, 0.9, 0.9);
 	Sphere0.ns = 8.0;
 	SphereList.push_back(Sphere0);
 
-	// 초록색 구
-	GSphere Sphere1(GPos3(50, -45, -380.0), 35.0f);
+	// 빨간색 구
+	GSphere Sphere1(GPos3(60, 0, -330.0), 25.0f);
 	Sphere1.Ka.Set(0.8, 0.2, 0.2);
 	Sphere1.Kd.Set(0.7, 0.0, 0.0);
 	Sphere1.Ks.Set(0.9, 0.9, 0.9);
@@ -87,17 +91,26 @@ int main(int argc, char **argv)
 	SphereList.push_back(Sphere1);
 
 	// 노란색 구
-	GSphere Sphere2(GPos3(50, 50, -440.0), 35.0f);
+	GSphere Sphere2(GPos3(-60, 0, -330.0), 25.0f);
 	Sphere2.Ka.Set(0.8, 0.8, 0.2);
 	Sphere2.Kd.Set(0.7, 0.7, 0.0);
 	Sphere2.Ks.Set(0.9, 0.9, 0.9);
 	Sphere2.ns = 8.0;
 	SphereList.push_back(Sphere2);
 
+	// 초록색 구
+	GSphere Sphere3(GPos3(0, 60, -330.0), 25.0f);
+	Sphere3.Ka.Set(0.2, 0.8, 0.2);
+	Sphere3.Kd.Set(0.0, 0.7, 0.0);
+	Sphere3.Ks.Set(0.9, 0.9, 0.9);
+	Sphere3.ns = 8.0;
+	SphereList.push_back(Sphere3);
+
 	// 이미지를 생성
 	Img();
 
-	// 타이머 : 30밀리 초마다 노란색 구를 앞으로(z축) 5 이동(70 이동하면 멈춘다.)
+	// 회전 애니메이션
+	glutTimerFunc(1, Anim, 0);
 
 	// 이벤트를 처리를 위한 무한 루프로 진입한다.
 	glutMainLoop();
@@ -174,7 +187,7 @@ GVec3 RayTrace(GLine v, int depth)
 	// 5. 퐁 쉐이딩
 	C = phong(p, *sphere, v)
 		+ kreflect * RayTrace(R, depth);
-		//+ krefract * RayTrace(T, depth);
+		+ krefract * RayTrace(T, depth);
 
 	return C;
 }
@@ -236,14 +249,15 @@ GLine refraction(GVec3 v, GSphere S, GPos3 p)
 
 	double q = SQRT(SQR(uvDot) - (uuDot - r * r));
 	double t = (-1) * uvDot + q;
+
 	GPos3 p1 = point_of_intersection(GLine(p, v), t);
 
 	// 2차 굴절 광선
 	N = (S.Pos - p1).Normalize();
 	cos1 = N * -v;
-	cos2 = SQRT(1 - SQR(n1 / n2) * (1 - SQR(cos1)));
+	cos2 = SQRT(1 - SQR(n2 / n1) * (1 - SQR(cos1)));
 
-	auto T2 = ((n1 / n2) * v - (cos2 - (n1 / n2) * cos1) * N).Normalize();
+	auto T2 = ((n2 / n1) * v - (cos2 - (n2 / n1) * cos1) * N).Normalize();
 
 	return GLine(p1, T2);
 }
@@ -270,6 +284,23 @@ GVec3 phong(GPos3 p, GSphere S, GLine ray)
 	}
 
 	return C;
+}
+
+// 6. 회전 애니메이션
+void Anim(int i)
+{
+	float t = i * 0.1f;
+
+	for (int i = 1; i < SphereList.size(); i++)
+	{
+		auto &p = SphereList[i].Pos;
+		p[0] = 60 * cos(t + (PI * 2 / 3 * i));
+		p[1] = 60 * sin(t + (PI * 2 / 3 * i));
+	}
+
+	Img();
+	glutPostRedisplay();
+	glutTimerFunc(1, Anim, i + 1);
 }
 
 
