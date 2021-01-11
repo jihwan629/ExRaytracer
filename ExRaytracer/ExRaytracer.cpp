@@ -5,7 +5,7 @@
 #include "gmath.h"
 #include <tuple>
 
-#define MAX_DEPTH 3
+#define MAX_DEPTH 5
 #define H 600
 #define W 800
 
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 	));
 
 	LightList.push_back(GLight(
-		GPos3(200.0, -300.0, -400.0),
+		GPos3(100.0, -300.0, -400.0),
 		GVec3(0.2, 0.2, 0.2),
 		GVec3(0.7, 0.7, 0.7),
 		GVec3(0.8, 0.8, 0.8)
@@ -75,7 +75,10 @@ int main(int argc, char **argv)
 	// 구 배치
 
 	// 파란색 구
-	GSphere Sphere0 (GPos3(0, 0, -350.0), 30.0f); 
+	GSphere Sphere0 (
+		GPos3(60 * cos(PI * 2 / 3 * 0), 60 * sin(PI * 2 / 3 * 0), -350.0),
+		25.0f
+	); 
 	Sphere0.Ka.Set(0.2, 0.2, 0.8);
 	Sphere0.Kd.Set(0.0, 0.0, 0.7);
 	Sphere0.Ks.Set(0.9, 0.9, 0.9);
@@ -83,7 +86,10 @@ int main(int argc, char **argv)
 	SphereList.push_back(Sphere0);
 
 	// 빨간색 구
-	GSphere Sphere1(GPos3(60, 0, -330.0), 25.0f);
+	GSphere Sphere1(
+		GPos3(60 * cos(PI * 2 / 3 * 1), 60 * sin(PI * 2 / 3 * 1), -350.0),
+		25.0f
+	);
 	Sphere1.Ka.Set(0.8, 0.2, 0.2);
 	Sphere1.Kd.Set(0.7, 0.0, 0.0);
 	Sphere1.Ks.Set(0.9, 0.9, 0.9);
@@ -91,7 +97,10 @@ int main(int argc, char **argv)
 	SphereList.push_back(Sphere1);
 
 	// 노란색 구
-	GSphere Sphere2(GPos3(-60, 0, -330.0), 25.0f);
+	GSphere Sphere2(
+		GPos3(60 * cos(PI * 2 / 3 * 2), 60 * sin(PI * 2 / 3 * 2), -350.0),
+		25.0f
+	);
 	Sphere2.Ka.Set(0.8, 0.8, 0.2);
 	Sphere2.Kd.Set(0.7, 0.7, 0.0);
 	Sphere2.Ks.Set(0.9, 0.9, 0.9);
@@ -99,7 +108,7 @@ int main(int argc, char **argv)
 	SphereList.push_back(Sphere2);
 
 	// 초록색 구
-	GSphere Sphere3(GPos3(0, 60, -330.0), 25.0f);
+	GSphere Sphere3(GPos3(0, 0, -350.0), 25.0f);
 	Sphere3.Ka.Set(0.2, 0.8, 0.2);
 	Sphere3.Kd.Set(0.0, 0.7, 0.0);
 	Sphere3.Ks.Set(0.9, 0.9, 0.9);
@@ -291,7 +300,7 @@ void Anim(int i)
 {
 	float t = i * 0.1f;
 
-	for (int i = 1; i < SphereList.size(); i++)
+	for (int i = 0; i < SphereList.size() - 1; i++)
 	{
 		auto &p = SphereList[i].Pos;
 		p[0] = 60 * cos(t + (PI * 2 / 3 * i));
