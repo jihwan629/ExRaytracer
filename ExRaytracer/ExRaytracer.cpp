@@ -27,9 +27,6 @@ void Reshape(int w, int h);
 
 // 이미지 그리기
 void Img();
-// 벡터 내적 구하기
-double Vec3Dot(GVec3 a, GVec3 b);
-
 // 레이트레이스
 GVec3 RayTrace(GLine v, int depth);
 // 1. 교차하는 가장 가까운 구 찾기
@@ -38,9 +35,9 @@ findSphere nearest_intersected_surface(GLine ray);
 // 2. 교차점 찾기
 GPos3 point_of_intersection(GLine ray, double t);
 // 3. 반사
-GVec3 reflection(GVec3 v, GSphere S, GPos3 p);
+GLine reflection(GVec3 v, GSphere S, GPos3 p);
 // 4. 굴절
-GVec3 refraction(GVec3 v, GSphere S, GPos3 p);
+GLine refraction(GVec3 v, GSphere S, GPos3 p);
 // 5. 퐁 쉐이딩
 GVec3 phong(GPos3 p, GSphere S, GLine ray);
 
@@ -101,7 +98,6 @@ int main(int argc, char **argv)
 	Img();
 
 	// 타이머 : 30밀리 초마다 노란색 구를 앞으로(z축) 5 이동(70 이동하면 멈춘다.)
-	
 
 	// 이벤트를 처리를 위한 무한 루프로 진입한다.
 	glutMainLoop();
@@ -133,24 +129,6 @@ void Img()
 	int y0 = H / 2 - 1; // 299
 	double z = -(H / 2) / tan(M_PI * 15 / 180.0);
 
-	// // 1번 테스트
-	//{
-	//	GPos3 s0 = SphereList.at(0).Pos, s1 = SphereList.at(1).Pos, s2 = SphereList.at(2).Pos;
-	//	s0.V[1] += 10.0f;
-	//	GVec3 Color = RayTrace(GLine(GPos3(0.0, 0.0, 0.0), s0), 0); // YES
-	//	//Color = RayTrace(GLine(GPos3(0.0, 0.0, 0.0), s1), 0); // YES
-	//	//Color = RayTrace(GLine(GPos3(0.0, 0.0, 0.0), s2), 0); // YES
-
-	//	//GPos3 w0(5, 5, -400), w1(100, 100, -200);
-
-	//	//Color = RayTrace(GLine(GPos3(0.0, 0.0, 0.0), w0), 0); // NO
-	//	//Color = RayTrace(GLine(GPos3(0.0, 0.0, 0.0), w1), 0); // NO
-
-	//	//s0.V[1] += 10.0f;
-	//	//Color = RayTrace(GLine(GPos3(0.0, 0.0, 0.0), s0), 0); // YES
-	//}
-	
-
 	for (int i = 0; i < H; ++i)
 	{
 		for (int j = 0; j < W; ++j)
@@ -173,7 +151,7 @@ void Img()
 
 GVec3 RayTrace(GLine v, int depth)
 {
-	GVec3 C(0, 0, 0);
+	GVec3 C(0.0, 0.0, 0.0);
 	depth++;
 
 	// 1. 교차하는 가장 가까운 구 찾기
@@ -182,46 +160,25 @@ GVec3 RayTrace(GLine v, int depth)
 	auto &sphere = std::get<0>(S);
 	auto &time = std::get<1>(S);
 
-	if (sphere == nullptr || depth == MAX_DEPTH)
-	{
-		//std::cout << "No" << std::endl;
-		return C; // default color
-	}
+	if (sphere == nullptr || depth == MAX_DEPTH) return C; // default color
 
 	// 2. 교차점 찾기
 	auto p = point_of_intersection(v, time);
 
-	//std::cout << "구 : " << sphere->Pos << std::endl;
-	//std::cout << "P: " << p << std::endl;
-	//std::cout << "t: " << time << std::endl;
-
 	// 3. 반사
 	auto R = reflection(v.GetDir(), *sphere, p);
-
-	//std::cout << "R: " << R << std::endl;
 
 	// 4. 굴절
 	auto T = refraction(v.GetDir(), *sphere, p);
 
-	//std::cout << "T: " << T << std::endl;
-
 	// 5. 퐁 쉐이딩
 	C = phong(p, *sphere, v)
-		+ kreflect * RayTrace(GLine(p, R), depth);
-		//+ krefract * RayTrace(GLine(p, T), depth)
-
-	//std::cout << "Yes" << std::endl;
-	//std::cout << sphere->Pos << std::endl;
-	//std::cout << time << std::endl;
+		+ kreflect * RayTrace(R, depth);
+		//+ krefract * RayTrace(T, depth);
 
 	return C;
 }
 
-// 벡터 내적 
-double Vec3Dot(GVec3 a, GVec3 b)
-{
-	return a.V[0] * b.V[0] + a.V[1] * b.V[1] + a.V[2] * b.V[2];
-}
 // 1. 교차하는 가장 가까운 구 찾기
 findSphere nearest_intersected_surface(GLine ray)
 {
@@ -231,23 +188,19 @@ findSphere nearest_intersected_surface(GLine ray)
 	{
 		// u : p0 - q(구 중심)
 		GVec3 v = ray.GetDir(), u = ray.GetPt() - sphere.Pos;
-		double uvDot = Vec3Dot(u, v), uDist = norm(u), r = sphere.Rad;
+		double uvDot = u * v, uuDot = u * u, r = sphere.Rad;
 
-		if (uvDot * uvDot - (uDist * uDist - r * r) < 0) continue;
+		if (SQR(uvDot) - (uuDot - r * r) < 0) continue;
 
-		double t = (-1) * uvDot - SQRT(uvDot * uvDot - (uDist * uDist - r * r));
-		//if (t < 0) t = (-1) * uvDot + SQRT(uvDot * uvDot - (uDist * uDist - r * r));
+		double q = SQRT(SQR(uvDot) - (uuDot - r * r));
+		double t0 = (-1) * uvDot - q, t1 = (-1) * uvDot + q;
 
-		if (t < 0) continue;
-
-		if (std::get<1>(res) > t)
+		if (t0 > 0 && std::get<1>(res) > t0)
 		{
 			std::get<0>(res) = std::move(std::make_shared<GSphere>(sphere));
-			std::get<1>(res) = t;
+			std::get<1>(res) = t0;
 		}
 	}
-
-	//std::cout << "res : " << std::get<1>(res) << std::endl;
 
 	return res;
 }
@@ -259,21 +212,40 @@ GPos3 point_of_intersection(GLine ray, double t)
 }
 
 // 3. 반사
-GVec3 reflection(GVec3 v, GSphere S, GPos3 p)
+GLine reflection(GVec3 v, GSphere S, GPos3 p)
 {
 	auto N = (p - S.Pos).Normalize();
 
-	return v - 2 * Vec3Dot(N, v) * N;
+	return GLine(p, (v - 2 * N * v * N).Normalize());
 }
 
 // 4. 굴절
-GVec3 refraction(GVec3 v, GSphere S, GPos3 p)
+GLine refraction(GVec3 v, GSphere S, GPos3 p)
 {
+	// 1차 굴절 광선
 	auto N = (p - S.Pos).Normalize();
-	auto cos1 = Vec3Dot(N, -v);
-	auto cos2 = SQRT(1 - (n1 / n2) * (n1 / n2) * (1 - cos1 * cos1));
+	auto cos1 = N * (-v);
+	auto cos2 = SQRT(1 - SQR(n1 / n2) * (1 - SQR(cos1)));
 
-	return (n1 / n2) * v - (cos2 - (n1 / n2) * cos1) * N;
+	auto T1 = ((n1 / n2) * v - (cos2 - (n1 / n2) * cos1) * N).Normalize();
+
+	// 교차점 찾기
+	v = T1;
+	GVec3 u = p - S.Pos;
+	double uvDot = u * v, uuDot = u * u, r = S.Rad;
+
+	double q = SQRT(SQR(uvDot) - (uuDot - r * r));
+	double t = (-1) * uvDot + q;
+	GPos3 p1 = point_of_intersection(GLine(p, v), t);
+
+	// 2차 굴절 광선
+	N = (S.Pos - p1).Normalize();
+	cos1 = N * -v;
+	cos2 = SQRT(1 - SQR(n1 / n2) * (1 - SQR(cos1)));
+
+	auto T2 = ((n1 / n2) * v - (cos2 - (n1 / n2) * cos1) * N).Normalize();
+
+	return GLine(p1, T2);
 }
 
 // 5. 퐁 쉐이딩
@@ -289,24 +261,12 @@ GVec3 phong(GPos3 p, GSphere S, GLine ray)
 		auto L = (light.Pos - p).Normalize();
 		auto R = reflection((p - light.Pos).Normalize(), S, p);
 
-		//std::cout << "N: " << N << std::endl;
-		//std::cout << "L: " << L << std::endl;
-		//std::cout << "V: " << V << std::endl;
-		//std::cout << "R: " << R << std::endl;
-
-		//std::cout << "Vec3Dot(N, L) : " << Vec3Dot(N, L) << std::endl;
-		//std::cout << "Vec3Dot(V, R) : " << Vec3Dot(V, R) << std::endl;
-
-		//std::cout << S.Ka[0] << " " << light.Ia[0] << std::endl;
-
 		for (int i = 0; i < 3; i++)
 		{
 			C[i] += S.Ka[i] * light.Ia[i]
-				+ S.Kd[i] * light.Id[i] * Vec3Dot(N, L)
-				+ S.Ks[i] * light.Is[i] * pow(Vec3Dot(V, R), S.ns);
+				+ S.Kd[i] * light.Id[i] * N * L
+				+ S.Ks[i] * light.Is[i] * pow(V * R.GetDir(), S.ns);
 		}
-
-		//std::cout << C << std::endl;
 	}
 
 	return C;
